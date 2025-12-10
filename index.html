@@ -10,7 +10,7 @@
   * { box-sizing: border-box; margin:0; padding:0; }
   :root{
     --blue:#001DFF;
-    --blue-dark:#04032B; /* Título final */
+    --blue-dark:#04032B; /* Color Oscuro para Títulos (Inicio, Juego y Final) */
     --blue-700:#1a3a5f;
     --blue-600:#254fba;
     --orange:#f59e42; /* Botón Volver al menú */
@@ -18,10 +18,10 @@
     --bg-grad-1:#1a3a5f;
     --bg-grad-2:#0d2340;
     --white:#ffffff;
-    --green:#2ecc71; /* Botón Ser vivo (A diario original) */
-    --green-dark:#27ae60; /* Hover Diario */
-    --red:#e74c3c; /* Botón Ser inerte (Ocasional original) */
-    --red-dark:#c0392b; /* Hover Ocasional */
+    --green:#2ecc71; /* Botón Ser vivo */
+    --green-dark:#27ae60; /* Hover Ser vivo */
+    --red:#e74c3c; /* Botón Ser inerte */
+    --red-dark:#c0392b; /* Hover Ser inerte */
     --panel:#E8EAFF;
   }
   body{
@@ -36,7 +36,8 @@
     display:flex; flex-direction:column;
   }
   header{ text-align:center; margin-bottom:.8rem; margin-top:2rem; }
-  h1{ color:var(--blue); font-size:clamp(2rem,5.2vw,3.1rem); font-weight:900; letter-spacing:.5px; }
+  /* TÍTULO CORREGIDO: Aplicamos el color oscuro a los H1 de todas las pantallas */
+  h1{ color:var(--blue-dark); font-size:clamp(2rem,5.2vw,3.1rem); font-weight:900; letter-spacing:.5px; }
   .subtitle{ color:var(--blue-700); font-size:clamp(1rem,3.5vw,1.25rem); margin-top:.25rem; }
   .highlight-keyword{ color:var(--orange); font-weight:800; }
 
@@ -145,6 +146,7 @@
 
   /* Results screen */
   .results{ display:flex; flex-direction:column; align-items:center; gap:.6rem; text-align:center; min-height:calc(100vh - 180px); }
+  /* Ya usa el color oscuro: var(--blue-dark) */
   .final-title{ color:var(--blue-dark); font-weight:900; } 
   .big-score{ font-size:clamp(2.2rem,6vw,3.4rem); color:var(--blue-600); font-weight:900; }
   .score-title{ font-size:1.0rem; color:var(--blue-700); margin-top:1rem; }
@@ -333,7 +335,7 @@ const VIVO_INERTES_DATA = [
   { type: 'VIVO', image: 'https://raw.githubusercontent.com/ManuelVS8/Audios-juegos-SCIENCE/main/Vivos_Inertes/Seres%20vivos/seta.png' },
   { type: 'VIVO', image: 'https://raw.githubusercontent.com/ManuelVS8/Audios-juegos-SCIENCE/main/Vivos_Inertes/Seres%20vivos/%C3%A1rbol.png' },
   // Ser inerte (INERTE)
-  { type: 'INERTE', image: 'https://raw.githubusercontent.com/ManuelVS8/Audios-juegos-SCIENCE/main/Vivos_Inertes/Seres%20inertes/Alexa.png' }, // Esta URL es distinta a las demás y está corregida
+  { type: 'INERTE', image: 'https://raw.githubusercontent.com/ManuelVS8/Audios-juegos-SCIENCE/main/Vivos_Inertes/Seres%20inertes/Alexa.png' }, 
   { type: 'INERTE', image: 'https://raw.githubusercontent.com/ManuelVS8/Audios-juegos-SCIENCE/main/Vivos_Inertes/Seres%20inertes/Vegeta.png' },
   { type: 'INERTE', image: 'https://raw.githubusercontent.com/ManuelVS8/Audios-juegos-SCIENCE/main/Vivos_Inertes/Seres%20inertes/coche.png' },
   { type: 'INERTE', image: 'https://raw.githubusercontent.com/ManuelVS8/Audios-juegos-SCIENCE/main/Vivos_Inertes/Seres%20inertes/cometa.png' },
@@ -356,17 +358,34 @@ const soundFiles = {
 const sounds = {}; let isMuted = false; let audioUnlocked = false;
 let audiosPrecargados = false; 
 
-// --- Preload Audio (Efectos) ---
+// --- Función específica para reproducir TAP inmediatamente (DESBLOQUEO) ---
+function reproducirSonidoTap() {
+  if (isMuted) return;
+  try {
+    // Usar new Audio() directamente con la URL para asegurar la interacción de desbloqueo
+    const tapAudio = new Audio(soundFiles.tap);
+    const p = tapAudio.play();
+    if (p && p.catch) p.catch(err => console.warn('Tap playback failed:', err));
+  } catch (e) {
+    console.error('Error al reproducir TAP', e);
+  }
+  // Desbloquea el contexto de audio después de la interacción exitosa
+  if (!audioUnlocked) { unlockAudio(); }
+}
+
+
+// --- Preload Audio (Efectos restantes: correct, error, completed, victory) ---
 function preloadAudios() {
   return new Promise((resolve) => {
     let loadedCount = 0;
-    const totalAudios = Object.keys(soundFiles).length;
+    // Solo precargar los audios que no son 'tap'
+    const audiosToPreload = Object.keys(soundFiles).filter(k => k !== 'tap');
+    const totalAudios = audiosToPreload.length;
     if (totalAudios === 0) { audiosPrecargados = true; resolve(); return; }
 
-    Object.entries(soundFiles).forEach(([k, url]) => {
+    audiosToPreload.forEach((k) => {
+      const url = soundFiles[k];
       const a = new Audio();
-      // Corrección: GitHub a veces maneja de forma inconsistente las URL de 'refs/heads/main' en raw
-      // Aseguramos la URL para evitar problemas
       const safeUrl = url.replace('refs/heads/main', 'main');
       a.src = safeUrl; 
       a.preload = 'auto';
@@ -389,28 +408,28 @@ function preloadAudios() {
 function unlockAudio(){
   if (audioUnlocked) return;
   try{
+    // Crear un contexto de audio para desbloquear la reproducción futura
     const ctx = new (window.AudioContext||window.webkitAudioContext)();
     const o = ctx.createOscillator();
     const g = ctx.createGain();
     o.connect(g);
     g.connect(ctx.destination);
-    g.gain.value = 0.0001;
+    g.gain.value = 0.0001; // Volumen casi cero
     o.start();
     o.stop(ctx.currentTime + 0.02);
     audioUnlocked = true;
+    console.log("Contexto de audio desbloqueado.");
   } catch(e){
     console.error("Error al desbloquear audio:", e);
   }
 }
 
-/* play effect */
+/* play effect (uses precargados) */
 function play(name){
-  if(!audioUnlocked) { unlockAudio(); }
-  if(isMuted) return;
+  if(isMuted || !audioUnlocked) return;
   const a = sounds[name];
-  if(!a) return;
+  if(!a) { console.warn(`Audio ${name} no cargado.`); return; }
   try{
-    // Clonar el audio para poder reproducirlo múltiples veces rápidamente
     const clone = a.cloneNode(); 
     clone.currentTime = 0;
     const p = clone.play();
@@ -423,12 +442,11 @@ function reproducirSonidoCorrecto(){ play('correct'); }
 function reproducirSonidoError(){ play('error'); }
 function reproducirSonidoCompletado(){ play('completed'); }
 function reproducirSonidoVictoria(){ play('victory'); }
-function reproducirSonidoTap(){ play('tap'); }
 
 
 /************** State & helpers **************/
 const el = (id)=>document.getElementById(id);
-const foodImg = el('foodImg'); // Renombrado de foodImg a itemImg para mayor claridad, pero mantenemos el ID original
+const foodImg = el('foodImg'); 
 const imgWrap = el('imgWrap');
 const progressFill = el('progressFill');
 const timerEl = el('timer');
@@ -457,7 +475,6 @@ function updateProgress(){
   const pct = (playIndex / TOTAL_QUESTIONS)*100; 
   progressFill.style.width = pct + '%'; 
   
-  // Puntuación: respuestas correctas / 18 * 100
   const currentScore = Math.round((correctCount / TOTAL_QUESTIONS) * 100);
   scoreEl.textContent = currentScore; 
   totalQuestionsEl.textContent = '100'; 
@@ -471,14 +488,11 @@ function setupGame(){
   playOrder = shuffle([...Array(TOTAL_QUESTIONS).keys()]); // Orden aleatorio
   playIndex = 0;
   
-  // Inicializar UI
   foodImg.src = '';
   el('imgWrap').classList.remove('correct', 'incorrect');
   
-  // Iniciar la primera pregunta automáticamente
   displayCurrentFood();
   
-  // Iniciar temporizador
   elapsed = 0;
   timerEl.textContent = '00:00';
   startTimer();
@@ -498,10 +512,8 @@ function displayCurrentFood(){
   foodImg.src = currentItem.image;
   foodImg.alt = "Imagen de un " + currentItem.type;
   
-  // Asegurarse de que el wrap no tenga clases de efecto
   imgWrap.classList.remove('correct', 'incorrect');
   
-  // Habilitar botones de nuevo
   aliveBtn.disabled = false;
   inertBtn.disabled = false;
 }
@@ -510,13 +522,15 @@ function displayCurrentFood(){
 function onClassificationClick(userType) {
   if (!isGameActive || aliveBtn.disabled) return; 
 
-  // Deshabilitar botones inmediatamente para evitar spam
   aliveBtn.disabled = true;
   inertBtn.disabled = true;
 
   const currentItem = currentData[playOrder[playIndex]];
   const isCorrect = userType === currentItem.type;
   
+  // Reproducir sonido TAP también en los botones de juego
+  reproducirSonidoTap(); 
+
   if (isCorrect) {
     correctCount++;
     reproducirSonidoCorrecto();
@@ -526,11 +540,9 @@ function onClassificationClick(userType) {
     imgWrap.classList.add('incorrect');
   }
   
-  // Actualizar progreso
   playIndex++;
   updateProgress();
 
-  // Transición a la siguiente pregunta después de 0.2 segundos
   setTimeout(() => {
     imgWrap.classList.remove('correct', 'incorrect');
     displayCurrentFood();
@@ -548,11 +560,9 @@ function finishGame(){
   el('gameScreen').classList.remove('active');
   el('resultsScreen').classList.add('active');
   
-  // Configurar pantalla de resultados
   el('finalScore').textContent = finalScorePoints; 
   el('finalTime').textContent = fmtTime(elapsed);
   
-  // Lógica de trofeo/victoria basada en 100 puntos
   el('trophyBox').style.display = (finalScorePoints===100) ? 'block' : 'none';
   const msg = (finalScorePoints===100) ? '¡Enhorabuena, puntuación máxima!' : '¡Buen trabajo! Sigue practicando';
   el('finalMsg').textContent = msg;
@@ -590,25 +600,29 @@ function trackUserInteraction() {
 
 /* Play button on START SCREEN */
 el('playBtn').addEventListener('click', async ()=>{ 
-  trackUserInteraction();
+  
+  // 1. Desbloquea el audio y reproduce el sonido TAP inmediatamente
   reproducirSonidoTap();
+  trackUserInteraction(); // Asegura el desbloqueo del contexto
 
   loadingIndicator.style.display = 'flex';
   loadingIndicator.querySelector('.loading-text').textContent = "Cargando audios e imágenes...";
   el('playBtn').disabled = true;
 
   try {
+    // 2. Precarga el resto de audios
     if (!audiosPrecargados) {
       await preloadAudios();
     }
     
-    // Iniciar precarga de imágenes
+    // 3. Iniciar precarga de imágenes
     const imagePromises = VIVO_INERTES_DATA.map(item => new Promise(resolve => {
         const img = new Image();
         img.onload = resolve;
         img.onerror = resolve; 
         img.src = item.image;
     }));
+    loadingIndicator.querySelector('.loading-text').textContent = "Cargando imágenes...";
     await Promise.all(imagePromises);
 
 
@@ -625,35 +639,30 @@ el('playBtn').addEventListener('click', async ()=>{
   }
 });
 
-// Event listeners para los botones de clasificación
+// Event listeners para los botones de clasificación (Ser vivo / Ser inerte)
 aliveBtn.addEventListener('click', ()=>{
-    trackUserInteraction();
     onClassificationClick('VIVO');
-    reproducirSonidoTap();
+    // El sonido TAP se reproduce dentro de onClassificationClick
 });
 
 inertBtn.addEventListener('click', ()=>{
-    trackUserInteraction();
     onClassificationClick('INERTE');
-    reproducirSonidoTap();
+    // El sonido TAP se reproduce dentro de onClassificationClick
 });
 
 
 /* Back to menu (results screen) */
 el('backToMenuBtn').addEventListener('click', ()=>{ 
-  trackUserInteraction();
   reproducirSonidoTap();
   gotoStart();
 });
 
 /* Help modal events */
 el('helpBtn').addEventListener('click', ()=>{ 
-  trackUserInteraction();
   reproducirSonidoTap();
   el('helpModal').style.display='flex'; 
 });
 el('closeHelp').addEventListener('click', ()=>{ 
-  trackUserInteraction();
   reproducirSonidoTap();
   el('helpModal').style.display='none'; 
 });
@@ -661,12 +670,12 @@ el('helpModal').addEventListener('click', (e)=>{ if(e.target===el('helpModal')) 
 
 /* Mute button */
 el('muteBtn').addEventListener('click', ()=>{ 
-  trackUserInteraction();
+  reproducirSonidoTap(); // Reproducir TAP si no está silenciado ANTES del cambio
   isMuted = !isMuted; 
   el('muteBtn').textContent = isMuted ? '🔇' : '🔊'; 
 });
 
-/* Unlock audio on any interaction */
+/* Unlock audio on any interaction (fallback) */
 document.addEventListener('click', trackUserInteraction, { once: false });
 document.addEventListener('touchstart', trackUserInteraction, { once: false });
 document.addEventListener('keydown', trackUserInteraction, { once: false });
