@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Seres vivos y seres inertes</title>
+<link rel="icon" href="https://raw.githubusercontent.com/ManuelVS8/Audios-juegos-SCIENCE/refs/heads/main/icono.ico" type="image/x-icon">
+<style>
+  /* ====== Reset & base ====== */
+  * { box-sizing: border-box; margin:0; padding:0; }
+  :root{
+    --blue:#001DFF;
+    --blue-dark:#04032B; /* Título final */
+    --blue-700:#1a3a5f;
+    --blue-600:#254fba;
+    --orange:#f59e42; /* Botón Volver al menú */
+    --orange-700:#e67e22;
+    --bg-grad-1:#1a3a5f;
+    --bg-grad-2:#0d2340;
+    --white:#ffffff;
+    --green:#2ecc71; /* Botón Ser vivo (A diario original) */
+    --green-dark:#27ae60; /* Hover Diario */
+    --red:#e74c3c; /* Botón Ser inerte (Ocasional original) */
+    --red-dark:#c0392b; /* Hover Ocasional */
+    --panel:#E8EAFF;
+  }
+  body{
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    /* Fondo azul oscuro o gradiente */
+    background: linear-gradient(135deg, var(--bg-grad-1) 0%, var(--bg-grad-2) 100%);
+    min-height:100vh; display:flex; justify-content:center; align-items:center; color:#333; padding:10px;
+  }
+  .game-container{
+    background:var(--white); border-radius:16px; box-shadow:0 12px 24px rgba(0,0,0,.12);
+    padding:1.2rem; max-width:980px; width:100%; min-height:640px; position:relative; overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  header{ text-align:center; margin-bottom:.8rem; margin-top:2rem; }
+  h1{ color:var(--blue); font-size:clamp(2rem,5.2vw,3.1rem); font-weight:900; letter-spacing:.5px; }
+  .subtitle{ color:var(--blue-700); font-size:clamp(1rem,3.5vw,1.25rem); margin-top:.25rem; }
+  .highlight-keyword{ color:var(--orange); font-weight:800; }
+
+  /* Buttons */
+  .btn{ color:#fff; border:none; padding:.75rem 1.2rem; border-radius:10px; cursor:pointer; font-weight:800;
+        transition:transform .08s ease, box-shadow .2s ease, background-color .25s ease; min-width:140px; height:48px;
+        display:inline-flex; align-items:center; justify-content:center; }
+  .btn:hover{ transform:translateY(-2px); box-shadow:0 6px 14px rgba(0,0,0,.12); }
+  .btn:active{ transform:translateY(0); }
+  
+  /* Botón Comenzar y Volver al menú (Naranja) */
+  .btn-primary{ background:var(--orange); }
+  .btn-primary:hover{ background:var(--orange-700); color:#fff; }
+  
+  /* Botón Ser vivo (Verde) */
+  .btn-alive{ background:var(--green); }
+  .btn-alive:hover{ background:var(--green-dark); } 
+  
+  /* Botón Ser inerte (Rojo) */
+  .btn-inert{ background:var(--red); }
+  .btn-inert:hover{ background:var(--red-dark); } 
+  
+  .btn-ghost{ background:#e6f2ff; color:var(--blue-700); }
+
+  .screen{ display:none; animation:fadeIn .35s ease; flex: 1; }
+  .screen.active{ display:flex; flex-direction: column; } 
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(12px);} to{opacity:1; transform:translateY(0);} }
+
+  .game-info{ display:flex; gap:.6rem; align-items:center; justify-content:space-between; margin:.4rem 0 1rem; flex-wrap:wrap; }
+  .timer{ font-weight:900; color:var(--blue-700); font-size:clamp(.95rem,2.3vw,1.15rem); }
+  .progress-bar{ flex:1; height:10px; background:#e6f2ff; border-radius:999px; overflow:hidden; }
+  .progress-fill{ height:100%; width:0%; background:linear-gradient(90deg, var(--orange) 0%, var(--orange-700) 100%); transition:width .3s ease; }
+  .score{ font-weight:900; color:var(--blue-700); font-size:clamp(.9rem,2.3vw,1.1rem); }
+
+  /* Start screen */
+  .start-content{ display:flex; flex-direction:column; justify-content:center; align-items:center; flex:1; gap:1rem; padding:1rem; }
+  .advice-box{ background:var(--panel); border-left:4px solid var(--blue-700); padding:1rem 1.2rem; border-radius:12px;
+               color:var(--blue-700); max-width:760px; text-align:center; font-size:clamp(1rem,3vw,1.15rem); }
+  .start-image{ max-width: 300px; width: 100%; margin: 0 auto; }
+
+  /* Sound & help */
+  .mute-btn{ position:absolute; top:.8rem; right:4.5rem; background:var(--orange); color:#fff; border:2px solid #fff; width:38px; height:38px; border-radius:50%; cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center; z-index:20; }
+  .mute-btn:hover{ background:var(--orange-700); }
+  .help-btn{ position:absolute; top:.8rem; right:.8rem; width:38px; height:38px; border-radius:50%; border:none; background:#9c27b0; color:#fff; font-weight:800; cursor:pointer; z-index:20; }
+
+  /* Game Board */
+  .board{ 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    gap: 1rem; 
+    flex: 1; 
+    padding: 0 10px;
+  }
+  .action-buttons{ 
+    display: flex; 
+    justify-content: center; 
+    gap: 1.5rem; 
+    width: 100%; 
+    max-width: 500px; 
+    margin-bottom: 1rem; 
+  }
+
+  .stage{ 
+    background:#fff; 
+    border-radius:12px; 
+    border:2px solid #e6f2ff; 
+    padding:.6rem; 
+    box-shadow: inset 0 0 0 1px #f3f7ff; 
+    flex: 1; 
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .img-wrap{ 
+    position:relative; 
+    width:100%; 
+    max-width:800px; 
+    margin:0 auto; 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    max-height: 100%; 
+  }
+  .img-wrap img{ 
+    display:block; 
+    width:auto; 
+    max-width:100%; 
+    height:auto; 
+    max-height: 100%;
+    border-radius:10px; 
+    user-select:none; 
+    -webkit-user-drag:none; 
+    object-fit: contain;
+    transition: transform 0.15s ease-out;
+  }
+  .img-wrap.correct img {
+    transform: scale(1.02);
+    box-shadow: 0 0 20px rgba(46, 204, 113, 0.8);
+  }
+  .img-wrap.incorrect img {
+    transform: scale(0.98);
+    box-shadow: 0 0 20px rgba(231, 76, 60, 0.8);
+  }
+
+  /* Results screen */
+  .results{ display:flex; flex-direction:column; align-items:center; gap:.6rem; text-align:center; min-height:calc(100vh - 180px); }
+  .final-title{ color:var(--blue-dark); font-weight:900; } 
+  .big-score{ font-size:clamp(2.2rem,6vw,3.4rem); color:var(--blue-600); font-weight:900; }
+  .score-title{ font-size:1.0rem; color:var(--blue-700); margin-top:1rem; }
+  .final-time{ color:var(--blue-700); }
+  .trophy{ font-size:clamp(4rem,10vw,6rem); margin:.2rem 0; color:var(--orange); animation:bounce 1s ease infinite; }
+  @keyframes bounce { 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-8px);} }
+  .credit{ color:var(--blue-700); margin-top:1rem; }
+
+  /* final message size */
+  #finalMsg {
+    font-size: clamp(1.6rem, 3.8vw, 2.4rem);
+    font-weight: 800;
+    color: var(--blue-700);
+    margin-top: 0.6rem;
+  }
+
+  /* School logo responsive */
+  .school-logo {
+    display: block;
+    width: 160px;
+    max-width: 28%;
+    height: auto;
+    margin-top: 0.8rem;
+    border-radius: 8px;
+    object-fit: contain;
+  }
+  @media (max-width: 899px) { .school-logo { width: 140px; max-width: 160px; } }
+  @media (max-width: 420px) {
+    .school-logo { width: 110px; max-width: 40%; margin-top: 0.6rem; }
+    .results { gap: 0.4rem; padding: 0 0.6rem; }
+    #finalMsg { font-size: clamp(1.2rem, 4.2vw, 1.8rem); }
+    .big-score { font-size: clamp(1.8rem, 6vw, 2.6rem); }
+  }
+  @media (max-width: 320px) {
+    .school-logo { width: 90px; max-width: 48%; }
+    #finalMsg { font-size: clamp(1.1rem, 4.6vw, 1.6rem); }
+  }
+
+  .confetti{ position:fixed; width:10px; height:10px; border-radius:50%; animation: confetti-fall 3s linear forwards; z-index:999; }
+  @keyframes confetti-fall{ 0%{ transform:translate(0, -20px) rotate(0); opacity:1;} 100%{ transform:translate(var(--tx), var(--ty)) rotate(360deg); opacity:0; } }
+
+  /* Loading */
+  .loading-indicator {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    flex-direction: column;
+  }
+  .loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid var(--orange);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+  }
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  .loading-text { color: white; font-size: 1.2rem; text-align: center; }
+
+  /* Start button style: orange bg, white text (Start the game) */
+  #playBtn, #backToMenuBtn {
+    background: var(--orange);
+    color: var(--white);
+    border: 2px solid var(--orange);
+    font-weight:900;
+    padding:.6rem 1rem;
+    border-radius:10px;
+  }
+  #playBtn:hover, #backToMenuBtn:hover { background: var(--orange-700); border-color: var(--orange-700); }
+
+  @media (max-width: 899px) {
+    header{ margin-top:1.6rem; }
+    .action-buttons{ 
+      gap: 1rem; 
+      flex-direction: column;
+      max-width: 300px;
+    }
+  }
+  @media (max-width:420px){ .btn{ min-width:110px; padding:.6rem .9rem; height:44px; } }
+</style>
+</head>
+<body>
+<div class="game-container">
+  <button class="mute-btn" id="muteBtn" title="Silenciar/Activar">🔊</button>
+
+  <section class="screen active" id="startScreen" aria-labelledby="title">
+    <header>
+      <h1 id="title">Seres vivos y seres inertes</h1>
+      <div class="subtitle">Identifica si las siguientes imágenes corresponden a seres vivos y seres inertes.</div>
+    </header>
+    <div class="start-content">
+      <div class="advice-box" role="note" aria-live="polite">
+        Recuerda que los seres vivos <span class="highlight-keyword">nacen</span>, <span class="highlight-keyword">crecen</span>, <span class="highlight-keyword">se alimentan</span>, <span class="highlight-keyword">se reproducen</span> y <span class="highlight-keyword">mueren</span>; mientras que los seres inertes no.
+        <div style="margin-top:.5rem; font-weight:800; text-align:center;">¡Buena suerte!</div>
+      </div>
+      <button class="btn btn-primary" id="playBtn">Comenzar</button>
+      <img class="start-image" src="https://raw.githubusercontent.com/ManuelVS8/Efectos_audio/refs/heads/main/Ni%C3%B1os.png" alt="Niños aprendiendo">
+    </div>
+  </section>
+
+  <section class="screen" id="gameScreen" aria-live="polite">
+    <button class="help-btn" id="helpBtn" title="Ayuda">?</button>
+    <header>
+      <h1>¿Ser vivo o ser inerte?</h1>
+      <div class="subtitle">Indica si la imagen pertenece a un ser vivo (verde) o ser inerte (rojo).</div>
+    </header>
+
+    <div class="game-info">
+      <div class="timer" id="timer">00:00</div>
+      <div class="progress-bar" aria-label="Progreso"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="score">Puntuación: <span id="score">0</span>/<span id="totalQuestions">100</span></div>
+    </div>
+
+    <div class="board">
+      <div class="action-buttons">
+        <button class="btn btn-alive" id="aliveBtn" data-type="VIVO">Ser vivo</button>
+        <button class="btn btn-inert" id="inertBtn" data-type="INERTE">Ser inerte</button>
+      </div>
+      
+      <div class="stage">
+        <div class="img-wrap" id="imgWrap">
+          <img id="foodImg" src="" alt="Elemento a clasificar">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" id="resultsScreen">
+    <header>
+      <h1 class="final-title">Seres vivos y seres inertes</h1>
+    </header>
+    <div class="results">
+      <div id="trophyBox" style="display:none;">
+        <div class="trophy">🏆</div>
+      </div>
+
+      <div class="score-title">Puntuación</div>
+      <div class="big-score" id="finalScore">0</div> 
+      <div class="final-time">Tiempo: <span id="finalTime">00:00</span></div>
+      <div id="finalMsg" class="subtitle"></div>
+      <button class="btn btn-primary" id="backToMenuBtn">Volver al menú</button>
+      <span class="credit">Creado por Manuel J. Ventura</span>
+      <img class="school-logo" id="schoolLogo" src="https://raw.githubusercontent.com/ManuelVS8/Efectos_audio/refs/heads/main/Siurot.png" alt="Logotipo del colegio" />
+    </div>
+  </section>
+</div>
+
+<div class="loading-indicator" id="loadingIndicator" style="display: none;">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Cargando...</div>
+</div>
+
+<div id="helpModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:100; justify-content:center; align-items:center; padding:1rem;">
+  <div style="background:#fff; border-radius:12px; max-width:680px; width:100%; padding:1.2rem 1.2rem; box-shadow:0 10px 24px rgba(0,0,0,.2);">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:.5rem; margin-bottom:.8rem;">
+      <h3 style="color:var(--blue-700);">Cómo jugar</h3>
+      <button class="btn-ghost" id="closeHelp" style="border-radius:8px; padding:.4rem .7rem; height:auto; min-width:auto;">Cerrar</button>
+    </div>
+    <div style="line-height:1.55; color:#333;">
+      <p><strong style="color: #001A73; font-weight: bold;">Pulsa el botón</strong> correspondiente para indicar si es un <strong style="color: var(--green); font-weight: bold;">ser vivo</strong> (verde) o <strong style="color: var(--red); font-weight: bold;">ser inerte</strong> (rojo).</p>
+    </div>
+  </div>
+</div>
+
+<script>
+/************** Data & audio files **************/
+
+// Corregir URLs de Github de 'blob/...' a 'raw/...' y asegurar el path
+const VIVO_INERTES_DATA = [
+  // Ser vivo (VIVO)
+  { type: 'VIVO', image: 'https://raw.githubusercontent.com/ManuelVS8/Audios-juegos-SCIENCE/main/Vivos_Inertes/Seres%20vivos/Le%C3%B3n.png' },
+  { type: 'VIVO', image: 'https://raw.githubusercontent.com/ManuelVS8/Audios-juegos-SCIENCE/main/Vivos_Inertes/Seres%20vivos/abeja.png' },
+  { type: 'VIVO', image: 'https://raw.githubusercontent.com/ManuelVS8/Audios-juegos-SCIENCE/main/Vivos_Inertes/Seres%20vivos/caracol.png' },
+  { type: 'VIVO', image: 'https://raw.githubusercontent.com/ManuelVS8/Audios-juegos-SCIENCE/main/Vivos_Inertes/Seres%20vivos/estrella.png' },
+  { type: 'VIVO', image: 'https://raw.githubusercontent.com/ManuelVS8/Audios-juegos-SCIENCE/main/Vivos_Inertes/Seres%20vivos/gato.png' },
+  { type: 'VIVO', image: 'https://raw.githubusercontent.com/ManuelVS8/Audios-juegos-SCIENCE/main/Vivos_Inertes/Seres%20vivos/loro.png' },
+  { type: 'VIVO', image: 'https://raw.githubusercontent.com/ManuelVS8/Audios-juegos-SCIENCE/main/Vivos_Inertes/Seres%20vivos/pez.png' },
+  { type: 'VIVO', image: 'https://raw.githubusercontent.com/ManuelVS8/Audios-juegos-SCIENCE/main/Vivos_Inertes/Seres%20vivos/seta.png' },
+  { type: 'VIVO', image: 'https://raw.githubusercontent.com/ManuelVS8/Audios-juegos-SCIENCE/main/Vivos_Inertes/Seres%20vivos/%C3%A1rbol.png' },
+  // Ser inerte (INERTE)
+  { type: 'INERTE', image: 'https://raw.githubusercontent.com/ManuelVS8/Audios-juegos-SCIENCE/main/Vivos_Inertes/Seres%20inertes/Alexa.png' }, // Esta URL es distinta a las demás y está corregida
+  { type: 'INERTE', image: 'https://raw.githubusercontent.com/ManuelVS8/Audios-juegos-SCIENCE/main/Vivos_Inertes/Seres%20inertes/Vegeta.png' },
+  { type: 'INERTE', image: 'https://raw.githubusercontent.com/ManuelVS8/Audios-juegos-SCIENCE/main/Vivos_Inertes/Seres%20inertes/coche.png' },
+  { type: 'INERTE', image: 'https://raw.githubusercontent.com/ManuelVS8/Audios-juegos-SCIENCE/main/Vivos_Inertes/Seres%20inertes/cometa.png' },
+  { type: 'INERTE', image: 'https://raw.githubusercontent.com/ManuelVS8/Audios-juegos-SCIENCE/main/Vivos_Inertes/Seres%20inertes/estatua.png' },
+  { type: 'INERTE', image: 'https://raw.githubusercontent.com/ManuelVS8/Audios-juegos-SCIENCE/main/Vivos_Inertes/Seres%20inertes/fuego.png' },
+  { type: 'INERTE', image: 'https://raw.githubusercontent.com/ManuelVS8/Audios-juegos-SCIENCE/main/Vivos_Inertes/Seres%20inertes/nube.png' },
+  { type: 'INERTE', image: 'https://raw.githubusercontent.com/ManuelVS8/Audios-juegos-SCIENCE/main/Vivos_Inertes/Seres%20inertes/osito.png' },
+  { type: 'INERTE', image: 'https://raw.githubusercontent.com/ManuelVS8/Audios-juegos-SCIENCE/main/Vivos_Inertes/Seres%20inertes/robot.png' },
+];
+
+// URLs de audio (corregidas de 'blob/...' a 'raw/...')
+const soundFiles = {
+  completed: 'https://raw.githubusercontent.com/ManuelVS8/Efectos_audio/7b86808e254100aeaba6285b3e0b82650ae78055/Completado.mp3',
+  correct:   'https://raw.githubusercontent.com/ManuelVS8/Efectos_audio/7b86808e254100aeaba6285b3e0b82650ae78055/Correcto.mp3',
+  victory:   'https://raw.githubusercontent.com/ManuelVS8/Efectos_audio/7b86808e254100aeaba6285b3e0b82650ae78055/Termin%C3%A9.mp3',
+  error:     'https://raw.githubusercontent.com/ManuelVS8/Efectos_audio/7b86808e254100aeaba6285b3e0b82650ae78055/Error.mp3',
+  tap:       'https://raw.githubusercontent.com/ManuelVS8/Efectos_audio/37b3eb2da9c15c04dfb71dfe1be60f088ea3cdfc/Tap.mp3'
+};
+
+const sounds = {}; let isMuted = false; let audioUnlocked = false;
+let audiosPrecargados = false; 
+
+// --- Preload Audio (Efectos) ---
+function preloadAudios() {
+  return new Promise((resolve) => {
+    let loadedCount = 0;
+    const totalAudios = Object.keys(soundFiles).length;
+    if (totalAudios === 0) { audiosPrecargados = true; resolve(); return; }
+
+    Object.entries(soundFiles).forEach(([k, url]) => {
+      const a = new Audio();
+      // Corrección: GitHub a veces maneja de forma inconsistente las URL de 'refs/heads/main' en raw
+      // Aseguramos la URL para evitar problemas
+      const safeUrl = url.replace('refs/heads/main', 'main');
+      a.src = safeUrl; 
+      a.preload = 'auto';
+      a.crossOrigin = 'anonymous';
+      a.addEventListener('canplaythrough', () => {
+        loadedCount++;
+        if (loadedCount === totalAudios) { audiosPrecargados = true; resolve(); }
+      }, { once: true });
+      a.addEventListener('error', (e) => {
+        console.error(`Error al cargar audio ${k}:`, e);
+        loadedCount++; 
+        if (loadedCount === totalAudios) { audiosPrecargados = true; resolve(); }
+      }, { once: true });
+      sounds[k] = a;
+    });
+  });
+}
+
+/* unlockAudio helper */
+function unlockAudio(){
+  if (audioUnlocked) return;
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g);
+    g.connect(ctx.destination);
+    g.gain.value = 0.0001;
+    o.start();
+    o.stop(ctx.currentTime + 0.02);
+    audioUnlocked = true;
+  } catch(e){
+    console.error("Error al desbloquear audio:", e);
+  }
+}
+
+/* play effect */
+function play(name){
+  if(!audioUnlocked) { unlockAudio(); }
+  if(isMuted) return;
+  const a = sounds[name];
+  if(!a) return;
+  try{
+    // Clonar el audio para poder reproducirlo múltiples veces rápidamente
+    const clone = a.cloneNode(); 
+    clone.currentTime = 0;
+    const p = clone.play();
+    if (p && p.catch) p.catch(err => console.warn('Effect playback failed:', err));
+  } catch(e){
+    console.log('Audio play error', e);
+  }
+}
+function reproducirSonidoCorrecto(){ play('correct'); }
+function reproducirSonidoError(){ play('error'); }
+function reproducirSonidoCompletado(){ play('completed'); }
+function reproducirSonidoVictoria(){ play('victory'); }
+function reproducirSonidoTap(){ play('tap'); }
+
+
+/************** State & helpers **************/
+const el = (id)=>document.getElementById(id);
+const foodImg = el('foodImg'); // Renombrado de foodImg a itemImg para mayor claridad, pero mantenemos el ID original
+const imgWrap = el('imgWrap');
+const progressFill = el('progressFill');
+const timerEl = el('timer');
+const scoreEl = el('score');
+const totalQuestionsEl = el('totalQuestions');
+const loadingIndicator = el('loadingIndicator');
+const aliveBtn = el('aliveBtn');
+const inertBtn = el('inertBtn');
+
+let currentData = [...VIVO_INERTES_DATA];
+const TOTAL_QUESTIONS = currentData.length; // 18 preguntas
+let playOrder = [];         
+let playIndex = 0;          
+let correctCount = 0;
+let timerInt = null; let elapsed = 0;
+let isGameActive = false; 
+let userInteracted = false;
+
+/* Utilities */
+function fmtTime(s){ const m=Math.floor(s/60).toString().padStart(2,'0'); const ss=(s%60).toString().padStart(2,'0'); return `${m}:${ss}`; }
+function startTimer(){ clearInterval(timerInt); timerInt = setInterval(()=>{ elapsed++; timerEl.textContent = fmtTime(elapsed); },1000); }
+function stopTimer(){ clearInterval(timerInt); }
+
+/* Score update: (Correct / 18) * 100 */
+function updateProgress(){ 
+  const pct = (playIndex / TOTAL_QUESTIONS)*100; 
+  progressFill.style.width = pct + '%'; 
+  
+  // Puntuación: respuestas correctas / 18 * 100
+  const currentScore = Math.round((correctCount / TOTAL_QUESTIONS) * 100);
+  scoreEl.textContent = currentScore; 
+  totalQuestionsEl.textContent = '100'; 
+}
+
+function shuffle(a){ const arr=[...a]; for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
+
+/* Setup for a new game */
+function setupGame(){
+  correctCount = 0;
+  playOrder = shuffle([...Array(TOTAL_QUESTIONS).keys()]); // Orden aleatorio
+  playIndex = 0;
+  
+  // Inicializar UI
+  foodImg.src = '';
+  el('imgWrap').classList.remove('correct', 'incorrect');
+  
+  // Iniciar la primera pregunta automáticamente
+  displayCurrentFood();
+  
+  // Iniciar temporizador
+  elapsed = 0;
+  timerEl.textContent = '00:00';
+  startTimer();
+
+  isGameActive = true;
+  updateProgress();
+}
+
+/* Display the current food item */
+function displayCurrentFood(){
+  if (playIndex >= TOTAL_QUESTIONS) {
+    finishGame();
+    return;
+  }
+  
+  const currentItem = currentData[playOrder[playIndex]];
+  foodImg.src = currentItem.image;
+  foodImg.alt = "Imagen de un " + currentItem.type;
+  
+  // Asegurarse de que el wrap no tenga clases de efecto
+  imgWrap.classList.remove('correct', 'incorrect');
+  
+  // Habilitar botones de nuevo
+  aliveBtn.disabled = false;
+  inertBtn.disabled = false;
+}
+
+/* Handle user click on a classification button */
+function onClassificationClick(userType) {
+  if (!isGameActive || aliveBtn.disabled) return; 
+
+  // Deshabilitar botones inmediatamente para evitar spam
+  aliveBtn.disabled = true;
+  inertBtn.disabled = true;
+
+  const currentItem = currentData[playOrder[playIndex]];
+  const isCorrect = userType === currentItem.type;
+  
+  if (isCorrect) {
+    correctCount++;
+    reproducirSonidoCorrecto();
+    imgWrap.classList.add('correct');
+  } else {
+    reproducirSonidoError();
+    imgWrap.classList.add('incorrect');
+  }
+  
+  // Actualizar progreso
+  playIndex++;
+  updateProgress();
+
+  // Transición a la siguiente pregunta después de 0.2 segundos
+  setTimeout(() => {
+    imgWrap.classList.remove('correct', 'incorrect');
+    displayCurrentFood();
+  }, 200); 
+}
+
+/* Finish game */
+function finishGame(){
+  stopTimer();
+  isGameActive = false;
+  
+  const totalCorrect = correctCount; 
+  const finalScorePoints = Math.round((totalCorrect / TOTAL_QUESTIONS) * 100); 
+
+  el('gameScreen').classList.remove('active');
+  el('resultsScreen').classList.add('active');
+  
+  // Configurar pantalla de resultados
+  el('finalScore').textContent = finalScorePoints; 
+  el('finalTime').textContent = fmtTime(elapsed);
+  
+  // Lógica de trofeo/victoria basada en 100 puntos
+  el('trophyBox').style.display = (finalScorePoints===100) ? 'block' : 'none';
+  const msg = (finalScorePoints===100) ? '¡Enhorabuena, puntuación máxima!' : '¡Buen trabajo! Sigue practicando';
+  el('finalMsg').textContent = msg;
+  
+  if(finalScorePoints===100){ reproducirSonidoVictoria(); spawnConfetti(); } else { reproducirSonidoCompletado(); }
+}
+
+/* helpers */
+function spawnConfetti(){ for(let i=0;i<120;i++){ setTimeout(()=>{ const c=document.createElement('div'); c.className='confetti'; const x=Math.random()*window.innerWidth; const ty=window.innerHeight+20; const tx=(Math.random()-.5)*160; const colors=['#ff595e','#1982c4','#6a4c93','#ffca3a','#8ac926','#ff924c','#00c2ff']; c.style.left=x+'px'; c.style.top='-10px'; c.style.backgroundColor=colors[Math.floor(Math.random()*colors.length)]; const size=6+Math.random()*8; c.style.width=size+'px'; c.style.height=size+'px'; c.style.setProperty('--tx', tx+'px'); c.style.setProperty('--ty', ty+'px'); document.body.appendChild(c); setTimeout(()=>c.remove(), 3200); }, i*18); } }
+
+/************** Routing & Events **************/
+/* gotoStart: reset everything and show start screen */
+function gotoStart(){
+  el('resultsScreen').classList.remove('active');
+  el('gameScreen').classList.remove('active');
+  el('startScreen').classList.add('active');
+
+  playOrder = []; playIndex = 0; 
+  correctCount = 0;
+  elapsed = 0; timerEl.textContent = '00:00'; progressFill.style.width = '0%'; 
+  scoreEl.textContent='0'; 
+  totalQuestionsEl.textContent = '100';
+  stopTimer();
+
+  isGameActive = false;
+  aliveBtn.disabled = false;
+  inertBtn.disabled = false;
+  userInteracted = false;
+}
+
+/* track user interactions to unlock audio */
+function trackUserInteraction() {
+  if (!userInteracted) { userInteracted = true; unlockAudio(); }
+}
+
+/* Play button on START SCREEN */
+el('playBtn').addEventListener('click', async ()=>{ 
+  trackUserInteraction();
+  reproducirSonidoTap();
+
+  loadingIndicator.style.display = 'flex';
+  loadingIndicator.querySelector('.loading-text').textContent = "Cargando audios e imágenes...";
+  el('playBtn').disabled = true;
+
+  try {
+    if (!audiosPrecargados) {
+      await preloadAudios();
+    }
+    
+    // Iniciar precarga de imágenes
+    const imagePromises = VIVO_INERTES_DATA.map(item => new Promise(resolve => {
+        const img = new Image();
+        img.onload = resolve;
+        img.onerror = resolve; 
+        img.src = item.image;
+    }));
+    await Promise.all(imagePromises);
+
+
+    el('startScreen').classList.remove('active');
+    el('gameScreen').classList.add('active');
+    
+    setupGame();
+
+  } catch (error) {
+    console.error("Error during preload:", error);
+  } finally {
+    loadingIndicator.style.display = 'none';
+    el('playBtn').disabled = false;
+  }
+});
+
+// Event listeners para los botones de clasificación
+aliveBtn.addEventListener('click', ()=>{
+    trackUserInteraction();
+    onClassificationClick('VIVO');
+    reproducirSonidoTap();
+});
+
+inertBtn.addEventListener('click', ()=>{
+    trackUserInteraction();
+    onClassificationClick('INERTE');
+    reproducirSonidoTap();
+});
+
+
+/* Back to menu (results screen) */
+el('backToMenuBtn').addEventListener('click', ()=>{ 
+  trackUserInteraction();
+  reproducirSonidoTap();
+  gotoStart();
+});
+
+/* Help modal events */
+el('helpBtn').addEventListener('click', ()=>{ 
+  trackUserInteraction();
+  reproducirSonidoTap();
+  el('helpModal').style.display='flex'; 
+});
+el('closeHelp').addEventListener('click', ()=>{ 
+  trackUserInteraction();
+  reproducirSonidoTap();
+  el('helpModal').style.display='none'; 
+});
+el('helpModal').addEventListener('click', (e)=>{ if(e.target===el('helpModal')) el('helpModal').style.display='none'; });
+
+/* Mute button */
+el('muteBtn').addEventListener('click', ()=>{ 
+  trackUserInteraction();
+  isMuted = !isMuted; 
+  el('muteBtn').textContent = isMuted ? '🔇' : '🔊'; 
+});
+
+/* Unlock audio on any interaction */
+document.addEventListener('click', trackUserInteraction, { once: false });
+document.addEventListener('touchstart', trackUserInteraction, { once: false });
+document.addEventListener('keydown', trackUserInteraction, { once: false });
+
+/* Initial setup */
+gotoStart(); // Initialize to start screen
+</script>
+</body>
+</html>
